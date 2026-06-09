@@ -417,9 +417,9 @@ html, body {
   <div class="section-label">Access</div>
   <div class="field-group">
     <div class="field">
-      <label>Anthropic API key</label>
+      <label>OpenAI API key</label>
       <div style="display:flex; gap:10px; align-items:flex-end;">
-        <input type="password" id="api-key" placeholder="sk-ant-…" autocomplete="off" style="flex:1;" />
+        <input type="password" id="api-key" placeholder="sk-…" autocomplete="off" style="flex:1;" />
         <button class="inline-btn" onclick="testKey()">Test</button>
       </div>
       <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px; min-height:16px;">
@@ -790,23 +790,21 @@ async function testKey() {
   const el = document.getElementById('key-status');
   el.textContent = 'testing…'; el.className = '';
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
+        'Authorization': `Bearer ${key}`,
       },
-      body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 5, messages: [{ role: 'user', content: 'hi' }] })
+      body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 5, messages: [{ role: 'user', content: 'hi' }] })
     });
     const body = await r.json().catch(() => ({}));
     if (r.ok) {
       el.textContent = '✓ valid — key saved on this device'; el.className = 'ok';
       localStorage.setItem('widn_api_key', key);
       document.getElementById('forget-key-btn').style.display = 'block';
-    } else if (body?.error?.message?.toLowerCase().includes('credit')) {
-      el.textContent = '⚠ key valid but account has no credits — top up at console.anthropic.com'; el.className = 'err';
+    } else if (body?.error?.type === 'insufficient_quota' || body?.error?.message?.toLowerCase().includes('quota')) {
+      el.textContent = '⚠ key valid but account has no credits — top up at platform.openai.com/settings/billing'; el.className = 'err';
       localStorage.setItem('widn_api_key', key);
       document.getElementById('forget-key-btn').style.display = 'block';
     } else {
@@ -826,7 +824,7 @@ function forgetKey() {
 // ── Start session ─────────────────────────────────────────────────────────
 function startSession() {
   const key = document.getElementById('api-key').value.trim();
-  if (!key) { alert('Enter your Anthropic API key first.'); return; }
+  if (!key) { alert('Enter your OpenAI API key first.'); return; }
   const name = document.getElementById('player-name').value.trim() || 'performer';
   let room = document.getElementById('room-code').value.trim();
   if (!room) { genCode(); room = document.getElementById('room-code').value; }
@@ -920,25 +918,25 @@ async function callConductor(userMessage) {
   setStatus('thinking');
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': S.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
+        'Authorization': `Bearer ${S.apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-8',
+        model: 'gpt-4o',
         max_tokens: 180,
-        system: buildSystemPrompt(),
-        messages: S.history
+        messages: [
+          { role: 'system', content: buildSystemPrompt() },
+          ...S.history
+        ]
       })
     });
 
     const data = await resp.json();
     if (!resp.ok) throw new Error(`API ${resp.status}: ${data?.error?.message || 'unknown error'}`);
-    const text = data.content?.[0]?.text || '';
+    const text = data.choices?.[0]?.message?.content || '';
 
     S.history.push({ role: 'assistant', content: text });
     S.actionCount++;
