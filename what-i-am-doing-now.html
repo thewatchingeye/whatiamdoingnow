@@ -802,7 +802,16 @@ function startSession() {
 
   hide('screen-setup');
   show('screen-perf');
-  initialGreeting();
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => initialGreeting())
+      .catch(() => {
+        setHeard('Microphone access denied. Reload and allow mic to perform.');
+        setStatus('idle');
+      });
+  } else {
+    initialGreeting();
+  }
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────
@@ -914,6 +923,7 @@ async function callConductor(userMessage) {
     S.thinking = false;
     itext.classList.remove('dim');
     setInstruction('(error — continue)', false);
+    setHeard(e.message || 'network error');
     setStatus('idle');
     console.error(e);
     startListeningLoop();
@@ -1012,12 +1022,23 @@ function startListeningLoop() {
     S.listening = false;
     S.recognition = null;
     if (!S.loopEnabled) return;
-    if (e.error === 'not-allowed') { setHeard('Microphone access denied. Please allow mic and reload.'); S.loopEnabled = false; return; }
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { setHeard('Microphone access denied. Please allow mic and reload.'); S.loopEnabled = false; return; }
     if (e.error === 'no-speech' || e.error === 'aborted') setTimeout(startListeningLoop, 600);
     else { setHeard(`mic error: ${e.error}`); setTimeout(startListeningLoop, 2000); }
   };
 
-  rec.start();
+  try {
+    rec.start();
+  } catch(startErr) {
+    S.listening = false;
+    S.recognition = null;
+    if (startErr.name === 'NotAllowedError') {
+      setHeard('Microphone access denied. Please allow mic and reload.');
+      S.loopEnabled = false;
+    } else {
+      setTimeout(startListeningLoop, 2000);
+    }
+  }
 }
 
 // ── End session ───────────────────────────────────────────────────────────
