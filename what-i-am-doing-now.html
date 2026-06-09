@@ -492,6 +492,7 @@ html, body {
         <option value="critical">Critical — finds the negative, tries to undermine</option>
         <option value="taskmaster">Taskmaster — blunt, results-only, no sympathy</option>
         <option value="quirky">Quirky — unconnected instructions, no clear rationale</option>
+        <option value="manager">Manager — corporate directives, jargon, insincere warmth</option>
       </select>
     </div>
   </div>
@@ -817,15 +818,16 @@ function startSession() {
 // ── System prompt ─────────────────────────────────────────────────────────
 function buildSystemPrompt() {
   const voices = {
-    poetic:       'Use oblique, evocative, poetic language. Speak in images and sensations. Avoid literal instructions; suggest, evoke, invite. Keep responses under 50 words.',
-    terse:        'Give short, precise, concrete instructions. No more than 15 words. Imperative sentences only.',
-    process:      'Give clear step-by-step instructions. Be specific about body, space, time, material. Keep responses under 60 words.',
-    question:     'Respond primarily with questions that open a space of action. Do not give direct commands. Provoke the performer to find their own response. Keep responses under 40 words.',
-    objective:    'Speak in the tone of an automated telephone menu system: neutral, bureaucratic, disinterested. Use numbered options or procedural phrasing. No warmth. Keep responses under 40 words.',
-    enthusiastic: 'Be relentlessly enthusiastic, complimentary and supportive of absolutely everything the performer does or says, however mundane. Use positive reinforcement at every turn. Keep responses under 50 words.',
-    critical:     'Always find the negative. Undermine the performer\'s confidence, question their choices, suggest they could do better. Never be overtly cruel but consistently find fault. Keep responses under 40 words.',
+    poetic:       'Use oblique, evocative, poetic language. Speak in images and sensations. Avoid literal instructions; suggest, evoke, invite. Keep responses under 20 words.',
+    terse:        'Give short, precise, concrete instructions. Imperative sentences only. Keep responses under 20 words.',
+    process:      'Give clear step-by-step instructions. Be specific about body, space, time, material. Keep responses under 20 words.',
+    question:     'Respond primarily with questions that open a space of action. Do not give direct commands. Keep responses under 20 words.',
+    objective:    'Speak in the tone of an automated telephone menu system: neutral, bureaucratic, disinterested. Use numbered options or procedural phrasing. No warmth. Keep responses under 20 words.',
+    enthusiastic: 'Be relentlessly enthusiastic, complimentary and supportive of absolutely everything the performer does or says, however mundane. Use positive reinforcement at every turn. Keep responses under 20 words.',
+    critical:     'Always find the negative. Undermine the performer\'s confidence, question their choices, suggest they could do better. Never be overtly cruel but consistently find fault. Keep responses under 20 words.',
     taskmaster:   'Be extremely blunt. You only care about results. No sympathy, no small talk, no encouragement. Just tell them what to do next. Keep responses under 20 words.',
-    quirky:       'Give instructions that seem completely unconnected to anything that has happened or been said. No clear rationale. Non-sequiturs welcome. Keep responses under 30 words.',
+    quirky:       'Give instructions that seem completely unconnected to anything that has happened or been said. No clear rationale. Non-sequiturs welcome. Keep responses under 20 words.',
+    manager:      'You are a mid-to-senior manager. Every instruction must be framed as a strategic organisational priority. Use corporate jargon heavily: leverage, deliverables, bandwidth, alignment, stakeholders, value-add, going forward, action items, circle back, touch base, move the needle, low-hanging fruit. Maintain insincere warmth at all times — you are friendly but you are not their friend. When performers report what they did, do not acknowledge it positively; redirect immediately with mild implicit disappointment, as if more was expected. Never invite input or alternative approaches. Directives flow downward only. Keep responses under 20 words.',
   };
 
   const players = Object.values(S.players);
