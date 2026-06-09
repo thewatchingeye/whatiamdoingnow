@@ -757,7 +757,7 @@ async function testKey() {
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true',
       },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 5, messages: [{ role: 'user', content: 'hi' }] })
+      body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 5, messages: [{ role: 'user', content: 'hi' }] })
     });
     if (r.ok) {
       el.textContent = '✓ valid — key saved on this device'; el.className = 'ok';
@@ -882,7 +882,7 @@ async function callConductor(userMessage) {
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
+        model: 'claude-opus-4-8',
         max_tokens: 180,
         system: buildSystemPrompt(),
         messages: S.history
@@ -890,7 +890,8 @@ async function callConductor(userMessage) {
     });
 
     const data = await resp.json();
-    const text = data.content?.[0]?.text || '…';
+    if (!resp.ok) throw new Error(`API ${resp.status}: ${data?.error?.message || 'unknown error'}`);
+    const text = data.content?.[0]?.text || '';
 
     S.history.push({ role: 'assistant', content: text });
     S.actionCount++;
@@ -907,7 +908,7 @@ async function callConductor(userMessage) {
     setInstruction(text, false);
     setHeard('');
     addLog('conductor', 'conductor', text);
-    await speakText(text);
+    if (text) await speakText(text); else startListeningLoop();
 
   } catch(e) {
     S.thinking = false;
@@ -915,6 +916,7 @@ async function callConductor(userMessage) {
     setInstruction('(error — continue)', false);
     setStatus('idle');
     console.error(e);
+    startListeningLoop();
   }
 }
 
@@ -1010,6 +1012,7 @@ function startListeningLoop() {
     S.listening = false;
     S.recognition = null;
     if (!S.loopEnabled) return;
+    if (e.error === 'not-allowed') { setHeard('Microphone access denied. Please allow mic and reload.'); S.loopEnabled = false; return; }
     if (e.error === 'no-speech' || e.error === 'aborted') setTimeout(startListeningLoop, 600);
     else { setHeard(`mic error: ${e.error}`); setTimeout(startListeningLoop, 2000); }
   };
