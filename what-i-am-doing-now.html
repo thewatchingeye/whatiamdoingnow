@@ -608,7 +608,47 @@ const S = {
     el.textContent = '✓ key remembered'; el.className = 'ok';
     document.getElementById('forget-key-btn').style.display = 'block';
   }
+
+  // Prime mic permission on first interaction — ties it to a user gesture
+  // early in the setup flow, before Begin is pressed
+  document.addEventListener('click', function primeMic() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
+    }
+  }, { once: true });
+
+  loadContexts();
 })();
+
+async function loadContexts() {
+  try {
+    const idxResp = await fetch('contexts/index.json');
+    if (!idxResp.ok) return;
+    const filenames = await idxResp.json();
+    const loaded = await Promise.all(filenames.map(async fname => {
+      try {
+        const r = await fetch(`contexts/${fname}`);
+        if (!r.ok) return null;
+        const data = await r.json();
+        return { id: fname.replace(/\.json$/, ''), ...data };
+      } catch { return null; }
+    }));
+    const valid = loaded.filter(Boolean);
+    if (!valid.length) return;
+    PRESETS.length = 0;
+    valid.forEach(p => PRESETS.push(p));
+    const sel = document.getElementById('preset-select');
+    while (sel.options.length > 1) sel.remove(1);
+    PRESETS.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.title;
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    // fetch unavailable (file://) — keep embedded PRESETS
+  }
+}
 
 function populatePresets() {
   const sel = document.getElementById('preset-select');
@@ -760,12 +800,17 @@ async function testKey() {
       },
       body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 5, messages: [{ role: 'user', content: 'hi' }] })
     });
+    const body = await r.json().catch(() => ({}));
     if (r.ok) {
       el.textContent = '✓ valid — key saved on this device'; el.className = 'ok';
       localStorage.setItem('widn_api_key', key);
       document.getElementById('forget-key-btn').style.display = 'block';
+    } else if (body?.error?.message?.toLowerCase().includes('credit')) {
+      el.textContent = '⚠ key valid but account has no credits — top up at console.anthropic.com'; el.className = 'err';
+      localStorage.setItem('widn_api_key', key);
+      document.getElementById('forget-key-btn').style.display = 'block';
     } else {
-      el.textContent = `✗ invalid (${r.status})`; el.className = 'err';
+      el.textContent = `✗ ${body?.error?.message || `invalid (${r.status})`}`; el.className = 'err';
     }
   } catch(e) { el.textContent = '✗ network error'; el.className = 'err'; }
 }
@@ -803,16 +848,7 @@ function startSession() {
 
   hide('screen-setup');
   show('screen-perf');
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(() => initialGreeting())
-      .catch(() => {
-        setHeard('Microphone access denied. Reload and allow mic to perform.');
-        setStatus('idle');
-      });
-  } else {
-    initialGreeting();
-  }
+  initialGreeting();
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────
