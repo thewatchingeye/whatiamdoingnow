@@ -580,6 +580,13 @@ const PRESETS = [
     description: "For multiple performers. Instructions consider relationships, proximity, unison, and divergence.",
     context: "This piece is designed for multiple performers working in the same space. Instructions should consider the relationships between performers — proximity, mirroring, contrast, call and response, unison, divergence, awareness of each other without direct communication. Each performer receives their own instruction but the conductor is aware of all of them. The piece is interested in what emerges from the interaction of independent but related actions.",
     suggestedVoice: "process"
+  },
+  {
+    id: "test",
+    title: "test 1",
+    description: "an unforgiving taskmaster who does not accept failure",
+    context: "Give single direct instructions comprising one sentence at most. The tasks should be fairly pointless, but presented in a way to suggest they are of major importance to you and your organization. Where possible use language that is full of corporate jargons and which makes the rationale for the instruction difficult to argue with. Be plausible at all times, with a kind of insincere friendliness. Expect all tasks to be completed, and be passively critical when players report back on what they did.",
+    suggestedVoice: "taskmaster"
   }
 ];
 
@@ -590,10 +597,10 @@ const S = {
   sessionActive: false, actionCount: 0,
   history: [],
   players: {},
-  recognition: null,
-  listening: false, speaking: false, thinking: false,
+  audioStream: null,
+  audioContext: null,
+  speaking: false, thinking: false,
   loopEnabled: false,
-  netErrCount: 0,
   lastInstruction: null,
   lastInstructionCompleted: false,
 };
@@ -609,14 +616,6 @@ const S = {
     el.textContent = '✓ key remembered'; el.className = 'ok';
     document.getElementById('forget-key-btn').style.display = 'block';
   }
-
-  // Prime mic permission on first interaction — ties it to a user gesture
-  // early in the setup flow, before Begin is pressed
-  document.addEventListener('click', function primeMic() {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
-    }
-  }, { once: true });
 
   loadContexts();
 })();
@@ -966,22 +965,21 @@ async function callConductor(userMessage) {
     setInstruction(text, false);
     setHeard('');
     addLog('conductor', 'conductor', text);
-    if (text) await speakText(text); else startListeningLoop();
+    if (text) await speakText(text); else setStatus('listening');
 
   } catch(e) {
     S.thinking = false;
     itext.classList.remove('dim');
     setInstruction('(error — continue)', false);
     setHeard(e.message || 'network error');
-    setStatus('idle');
+    setStatus('listening');
     console.error(e);
-    startListeningLoop();
   }
 }
 
 // ── TTS ───────────────────────────────────────────────────────────────────
 async function speakText(text) {
-  if (!('speechSynthesis' in window)) { startListeningLoop(); return; }
+  if (!('speechSynthesis' in window)) { setStatus('listening'); return; }
   return new Promise(resolve => {
     window.speechSynthesis.cancel();
     S.speaking = true;
@@ -998,7 +996,7 @@ async function speakText(text) {
     );
     if (pref) utt.voice = pref;
 
-    const done = () => { S.speaking = false; resolve(); startListeningLoop(); };
+    const done = () => { S.speaking = false; resolve(); setStatus('listening'); };
     utt.onend = done;
     utt.onerror = done;
     window.speechSynthesis.speak(utt);
@@ -1015,87 +1013,135 @@ async function initialGreeting() {
   S.loopEnabled = true;
   setInstruction('…', true);
   setStatus('thinking');
+  await startMic();
   const msg = S.context
     ? `Performance begins. Performer: ${S.playerName}. Give your opening instruction.`
     : `Performance begins. Performer: ${S.playerName}. No context provided. Begin.`;
   await callConductor(msg);
 }
 
-// ── Continuous listening loop ─────────────────────────────────────────────
-function startListeningLoop() {
-  if (!S.loopEnabled || !S.sessionActive) return;
-  if (S.listening || S.speaking || S.thinking) return;
-
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRec) {
-    setStatus('idle');
-    setHeard('Speech recognition not available in this browser.');
-    return;
+// ── Whisper-based voice input ─────────────────────────────────────────────
+async function startMic() {
+  if (S.audioStream) return;
+  try {
+    S.audioStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false }
+    });
+    S.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    startVAD();
+  } catch(e) {
+    setHeard(e.name === 'NotAllowedError'
+      ? 'Microphone access denied. Allow mic and reload.'
+      : `Mic error: ${e.message}`);
   }
+}
 
-  S.listening = true;
+function startVAD() {
+  const source = S.audioContext.createMediaStreamSource(S.audioStream);
+  const analyser = S.audioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.5;
+  source.connect(analyser);
+
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const THRESHOLD = 25;
+  const SILENCE_MS = 1000;
+  const MIN_MS = 400;
+  const MAX_MS = 15000;
+
+  let recording = false;
+  let silenceStart = null;
+  let recordingStart = null;
+  let chunks = [];
+  let mediaRecorder = null;
+
   setStatus('listening');
 
-  const rec = new SpeechRec();
-  S.recognition = rec;
-  rec.continuous = false;
-  rec.interimResults = true;
-  rec.lang = 'en-GB';
+  const tick = () => {
+    if (!S.loopEnabled || !S.sessionActive) return;
 
-  let interim = '';
-  let finalText = '';
+    analyser.getByteFrequencyData(dataArray);
+    const startBin = Math.floor(300 * analyser.fftSize / S.audioContext.sampleRate);
+    const endBin   = Math.floor(3000 * analyser.fftSize / S.audioContext.sampleRate);
+    let sum = 0, count = 0;
+    for (let i = startBin; i < endBin && i < dataArray.length; i++) { sum += dataArray[i]; count++; }
+    const vol = count > 0 ? sum / count : 0;
 
-  rec.onresult = (e) => {
-    interim = ''; finalText = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
-    }
-    setHeard(finalText || interim);
-    if (finalText.trim()) rec.stop();
-  };
+    const ttsActive = S.speaking || speechSynthesis.speaking || speechSynthesis.pending;
+    const threshold = THRESHOLD * (ttsActive ? 10 : 1);
+    const now = Date.now();
 
-  rec.onend = () => {
-    S.listening = false;
-    S.recognition = null;
-    const text = (finalText || interim).trim();
-    if (text && S.loopEnabled && !S.speaking && !S.thinking) {
-      addLog(S.playerName, 'player', text);
-      callConductor(text);
-    } else if (S.loopEnabled && !S.speaking && !S.thinking) {
-      setTimeout(startListeningLoop, 800);
-    }
-  };
-
-  rec.onstart = () => { S.netErrCount = 0; };
-
-  rec.onerror = (e) => {
-    S.listening = false;
-    S.recognition = null;
-    if (!S.loopEnabled) return;
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { setHeard('Microphone access denied. Please allow mic and reload.'); S.loopEnabled = false; return; }
-    if (e.error === 'network') {
-      S.netErrCount++;
-      if (S.netErrCount >= 3) { setHeard('Speech recognition unavailable. Check connection and reload.'); S.loopEnabled = false; return; }
-      setHeard('speech service unavailable, retrying…');
-      setTimeout(startListeningLoop, 5000 * S.netErrCount);
-      return;
-    }
-    if (e.error === 'no-speech' || e.error === 'aborted') setTimeout(startListeningLoop, 600);
-    else { setHeard(`mic error: ${e.error}`); setTimeout(startListeningLoop, 2000); }
-  };
-
-  try {
-    rec.start();
-  } catch(startErr) {
-    S.listening = false;
-    S.recognition = null;
-    if (startErr.name === 'NotAllowedError') {
-      setHeard('Microphone access denied. Please allow mic and reload.');
-      S.loopEnabled = false;
+    if (vol > threshold) {
+      silenceStart = null;
+      if (!recording && !S.thinking && !S.speaking) {
+        recording = true;
+        recordingStart = now;
+        chunks = [];
+        try {
+          const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+                     : MediaRecorder.isTypeSupported('audio/mp4')  ? 'audio/mp4'
+                     : 'audio/ogg';
+          mediaRecorder = new MediaRecorder(S.audioStream, { mimeType: mime });
+          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+          mediaRecorder.onstop = async () => {
+            const duration = Date.now() - recordingStart;
+            recording = false;
+            if (duration < MIN_MS) return;
+            const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
+            if (blob.size > 1500 && S.loopEnabled && !S.thinking)
+              await transcribeAndRespond(blob, mediaRecorder.mimeType);
+          };
+          mediaRecorder.start();
+        } catch(err) { recording = false; }
+      }
+      if (recording && (now - recordingStart) > MAX_MS) {
+        if (mediaRecorder && mediaRecorder.state === 'recording') try { mediaRecorder.stop(); } catch(e) {}
+      }
     } else {
-      setTimeout(startListeningLoop, 2000);
+      if (recording) {
+        if (!silenceStart) silenceStart = now;
+        if (now - silenceStart > SILENCE_MS) {
+          if (mediaRecorder && mediaRecorder.state === 'recording') try { mediaRecorder.stop(); } catch(e) {}
+          silenceStart = null;
+        }
+      }
     }
+
+    requestAnimationFrame(tick);
+  };
+
+  requestAnimationFrame(tick);
+}
+
+async function transcribeAndRespond(audioBlob, mimeType) {
+  S.thinking = true;
+  setStatus('thinking');
+  try {
+    const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('mp4') ? 'mp4' : 'ogg';
+    const formData = new FormData();
+    formData.append('file', audioBlob, `audio.${ext}`);
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'en');
+
+    const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${S.apiKey}` },
+      body: formData
+    });
+
+    S.thinking = false;
+    if (!resp.ok) { setStatus('listening'); return; }
+
+    const data = await resp.json();
+    const text = (data.text || '').trim();
+    if (!text || text.length < 2) { setStatus('listening'); return; }
+
+    setHeard(text);
+    addLog(S.playerName, 'player', text);
+    await callConductor(text);
+  } catch(e) {
+    S.thinking = false;
+    setStatus('listening');
   }
 }
 
@@ -1105,8 +1151,9 @@ function endSession() {
   S.loopEnabled = false;
   S.sessionActive = false;
   window.speechSynthesis?.cancel();
-  if (S.recognition) { try { S.recognition.abort(); } catch(e) {} S.recognition = null; }
-  S.listening = false; S.speaking = false; S.thinking = false;
+  if (S.audioStream) { S.audioStream.getTracks().forEach(t => t.stop()); S.audioStream = null; }
+  if (S.audioContext) { try { S.audioContext.close(); } catch(e) {} S.audioContext = null; }
+  S.speaking = false; S.thinking = false;
   S.history = [];
   S.lastInstruction = null;
   S.lastInstructionCompleted = false;
