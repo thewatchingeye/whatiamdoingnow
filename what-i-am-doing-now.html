@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>what i am doing now</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+:root {
+  --din: 'DIN Alternate', 'DIN Alternative', 'DIN Next', 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+  --black: #111;
+  --mid: #888;
+  --light: #bbb;
+  --lighter: #e8e8e8;
+  --bg: #fff;
+  --red: #d0392b;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--black);
+  font-family: var(--din);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.screen {
+  display: none;
+  min-height: 100vh;
+  width: 100%;
+  flex-direction: column;
+}
+
+/* ── SETUP ── */
+#screen-setup {
+  padding: 48px 40px 64px;
+  max-width: 580px;
+  margin: 0 auto;
+  width: 100%;
+  gap: 0;
+}
+
+.app-title {
+  font-family: var(--din);
+  font-size: clamp(18px, 4vw, 26px);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin-bottom: 48px;
+  line-height: 1.45;
+  text-align: right;
+  align-self: stretch;
+}
+
+.section-label {
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--light);
+  margin-bottom: 16px;
+  margin-top: 32px;
+}
+
+.section-label:first-of-type { margin-top: 0; }
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mid);
+  font-weight: 400;
+}
+
+.field input,
+.field textarea,
+.field select {
+  font-family: var(--din);
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--black);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--lighter);
+  padding: 8px 0;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+  resize: none;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus { border-bottom-color: var(--black); }
+
+.field textarea { min-height: 90px; line-height: 1.6; }
+
+.field input::placeholder,
+.field textarea::placeholder { color: var(--light); }
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.inline-btn {
+  font-family: var(--din);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mid);
+  background: transparent;
+  border: 1px solid var(--lighter);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.inline-btn:hover { border-color: var(--black); color: var(--black); }
+
+#key-status {
+  font-size: 11px;
+  color: var(--light);
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+  height: 16px;
+}
+#key-status.ok { color: #4a9a4a; }
+#key-status.err { color: var(--red); }
+
+/* Context file area */
+.context-source-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--lighter);
+}
+
+.ctx-tab {
+  font-family: var(--din);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--light);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px 8px 0;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+.ctx-tab.active { color: var(--black); border-bottom-color: var(--black); }
+.ctx-tab:hover { color: var(--mid); }
+
+.ctx-panel { display: none; }
+.ctx-panel.active { display: block; }
+
+/* Context file select styling */
+.file-select-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.file-select-row .field { flex: 1; }
+
+.ctx-description {
+  font-size: 12px;
+  color: var(--light);
+  font-style: italic;
+  margin-top: 8px;
+  line-height: 1.5;
+  min-height: 18px;
+}
+
+/* File upload drop area */
+.upload-area {
+  border: 1px dashed var(--lighter);
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.upload-area:hover { border-color: var(--mid); }
+.upload-area input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  border: none;
+  padding: 0;
+}
+.upload-area-label {
+  font-size: 12px;
+  color: var(--light);
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+.upload-area.loaded .upload-area-label { color: var(--black); }
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--lighter);
+  margin: 32px 0;
+}
+
+.start-btn {
+  font-family: var(--din);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bg);
+  background: var(--black);
+  border: none;
+  padding: 16px 36px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  align-self: flex-start;
+}
+.start-btn:hover { opacity: 0.75; }
+.start-btn:active { opacity: 0.5; }
+
+/* ── PERFORMANCE SCREEN ── */
+#screen-perf { position: relative; }
+
+.perf-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--lighter);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.perf-title { font-size: 11px; letter-spacing: 0.08em; }
+
+.perf-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.meta-item { font-size: 11px; color: var(--light); letter-spacing: 0.08em; }
+.meta-item strong { color: var(--mid); font-weight: 400; }
+
+.end-btn {
+  font-family: var(--din);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--light);
+  background: transparent;
+  border: 1px solid var(--lighter);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.end-btn:hover { color: var(--red); border-color: var(--red); }
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+  text-align: center;
+  min-height: 50vh;
+}
+
+.instruction-text {
+  font-family: var(--din);
+  font-size: clamp(24px, 5vw, 44px);
+  font-weight: 300;
+  line-height: 1.25;
+  color: var(--black);
+  letter-spacing: -0.01em;
+  max-width: 640px;
+  transition: opacity 0.3s;
+}
+.instruction-text.dim { opacity: 0.18; }
+.instruction-text.placeholder { font-size: clamp(16px, 3vw, 22px); color: var(--light); font-weight: 300; }
+
+.status-line {
+  margin-top: 32px;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--light);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 20px;
+}
+
+.listen-ring {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--black);
+  animation: listen-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes listen-pulse {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.listen-ring.speaking {
+  background: var(--mid);
+  animation: speak-pulse 0.6s ease-in-out infinite;
+}
+@keyframes speak-pulse {
+  0%, 100% { transform: scale(0.7); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+.listen-ring.thinking {
+  background: var(--light);
+  animation: think-spin 1.5s linear infinite;
+  border-radius: 0;
+  width: 7px; height: 7px;
+  transform-origin: center;
+}
+@keyframes think-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.heard-area {
+  padding: 0 40px 20px;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.heard-text {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--light);
+  letter-spacing: 0.02em;
+  font-style: italic;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.log-strip {
+  border-top: 1px solid var(--lighter);
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.log-strip::-webkit-scrollbar { display: none; }
+
+.log-row {
+  display: flex;
+  gap: 16px;
+  padding: 10px 28px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.log-row:last-child { border-bottom: none; }
+.log-who {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--light);
+  width: 64px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.log-row.conductor .log-who { color: var(--mid); }
+.log-msg { color: var(--mid); font-weight: 300; flex: 1; }
+.log-row.conductor .log-msg { color: var(--black); }
+
+.field select option { background: #fff; color: var(--black); }
+</style>
+</head>
+<body>
+
+<!-- ── SETUP SCREEN ── -->
+<div class="screen" id="screen-setup" style="display:flex;">
+
+  <h1 class="app-title">
+    <span style="color:#F09837;">what i am doing now</span><br>
+    <span style="color:#427386;">/ James Saunders</span><br>
+    <span style="color:#89AFBB;">/ 2026</span>
+  </h1>
+
+  <!-- Credentials -->
+  <div class="section-label">Access</div>
+  <div class="field-group">
+    <div class="field">
+      <label>Anthropic API key</label>
+      <div style="display:flex; gap:10px; align-items:flex-end;">
+        <input type="password" id="api-key" placeholder="sk-ant-…" autocomplete="off" style="flex:1;" />
+        <button class="inline-btn" onclick="testKey()">Test</button>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px; min-height:16px;">
+        <div id="key-status" style="font-size:11px; color:var(--light); letter-spacing:0.05em;">—</div>
+        <button id="forget-key-btn" onclick="forgetKey()" style="display:none; font-family:var(--din); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--light); background:none; border:none; cursor:pointer; padding:0;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--light)'">Forget key</button>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label>Your name / instrument</label>
+        <input type="text" id="player-name" placeholder="voice, hands, cello…" />
+      </div>
+      <div class="field">
+        <label>Room code</label>
+        <div style="display:flex; gap:8px; align-items:flex-end;">
+          <input type="text" id="room-code" placeholder="auto" style="flex:1;" />
+          <button class="inline-btn" onclick="genCode()">Gen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance context -->
+  <div class="section-label">Performance context</div>
+
+  <div class="context-source-tabs">
+    <button class="ctx-tab active" onclick="switchCtxTab('preset')">Preset</button>
+    <button class="ctx-tab" onclick="switchCtxTab('upload')">Upload file</button>
+    <button class="ctx-tab" onclick="switchCtxTab('manual')">Write manually</button>
+  </div>
+
+  <div class="ctx-panel active" id="ctx-preset">
+    <div class="file-select-row">
+      <div class="field">
+        <label>Select context</label>
+        <select id="preset-select" onchange="loadPreset()">
+          <option value="">— choose —</option>
+        </select>
+      </div>
+    </div>
+    <div class="ctx-description" id="preset-desc"></div>
+  </div>
+
+  <div class="ctx-panel" id="ctx-upload">
+    <div class="upload-area" id="upload-area">
+      <input type="file" accept=".json,.txt" onchange="handleFileUpload(event)" />
+      <div class="upload-area-label" id="upload-label">Drop a context .json or .txt file here, or tap to browse</div>
+    </div>
+  </div>
+
+  <div class="ctx-panel" id="ctx-manual">
+    <div class="field">
+      <label>Context text</label>
+      <textarea id="manual-context" placeholder="Describe the nature of this piece. What kinds of actions are appropriate? What is the aim or aesthetic frame?"></textarea>
+    </div>
+  </div>
+
+  <!-- Voice style -->
+  <div class="section-label" style="margin-top:28px;">Instruction voice</div>
+  <div class="field-group">
+    <div class="field">
+      <label>Style</label>
+      <select id="voice-style">
+        <option value="poetic">Poetic — oblique, evocative language</option>
+        <option value="terse">Terse — short, precise commands</option>
+        <option value="process">Process — step-by-step instructions</option>
+        <option value="question">Questioning — responds with prompts, not commands</option>
+        <option value="objective">Objective — automated, disinterested, telephone-menu tone</option>
+        <option value="enthusiastic">Enthusiastic — complimentary and supportive of every choice</option>
+        <option value="critical">Critical — finds the negative, tries to undermine</option>
+        <option value="taskmaster">Taskmaster — blunt, results-only, no sympathy</option>
+        <option value="quirky">Quirky — unconnected instructions, no clear rationale</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <button class="start-btn" onclick="startSession()">Begin</button>
+
+</div>
+
+<!-- ── PERFORMANCE SCREEN ── -->
+<div class="screen" id="screen-perf">
+
+  <div class="perf-bar">
+    <span class="perf-title">
+      <span style="color:#F09837;">what i am doing now</span>
+      <span style="color:#427386;"> / James Saunders</span>
+      <span style="color:#89AFBB;"> / 2026</span>
+    </span>
+    <div class="perf-meta">
+      <span class="meta-item">room <strong id="disp-room">—</strong></span>
+      <span class="meta-item" id="disp-name">—</span>
+      <button class="end-btn" onclick="endSession()">End</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="instruction-text placeholder" id="instruction-text">listening</div>
+    <div class="status-line">
+      <div class="listen-ring" id="listen-ring"></div>
+      <span id="status-label">ready</span>
+    </div>
+  </div>
+
+  <div class="heard-area">
+    <div class="heard-text" id="heard-text"></div>
+  </div>
+
+  <div class="log-strip" id="log-strip"></div>
+
+</div>
+
+<script>
+// ── Built-in preset context library ──────────────────────────────────────
+// In production these would be fetched from a /contexts/ folder on the server.
+// Here they are embedded so the file works standalone.
+const PRESETS = [
+  {
+    id: "open-durational",
+    title: "Open durational",
+    description: "A general-purpose durational performance with no fixed theme. The conductor shapes the arc freely.",
+    context: "This is an open durational performance. There is no fixed theme or material. The conductor shapes the arc moment to moment in response to what the performer reports. Instructions may involve the body, voice, objects, space, time, or attention. The piece should feel like it is discovering itself as it proceeds.",
+    suggestedVoice: "poetic"
+  },
+  {
+    id: "stillness",
+    title: "Stillness and incremental change",
+    description: "Exploring near-stillness, small gestures, and barely perceptible change over time.",
+    context: "This piece explores stillness and incremental change. Instruct the performer to make slow, near-imperceptible actions — shifts of weight, breath, gaze, tiny adjustments of posture or position. Changes should accumulate so gradually they are hard to locate in time. Avoid large gestures. If multiple performers are present, consider how their micro-actions relate spatially without direct contact or coordination.",
+    suggestedVoice: "poetic"
+  },
+  {
+    id: "everyday-actions",
+    title: "Everyday actions",
+    description: "Tasks drawn from ordinary domestic or workplace life, treated as performance material.",
+    context: "Instructions should be drawn from ordinary everyday actions — things one might do at home, at work, or in a public space. Tidying, carrying, waiting, preparing, cleaning, arranging, looking for something. The performer treats these mundane actions as performance material, attending to them with heightened awareness. The interest is in what is revealed when ordinary activity is made deliberate and observed.",
+    suggestedVoice: "terse"
+  },
+  {
+    id: "task-resistance",
+    title: "Task and resistance",
+    description: "Instructions that are difficult, ambiguous, or in tension with the performer's capability.",
+    context: "This piece works with resistance. Give instructions that are slightly too difficult, ambiguous, contradictory, or physically demanding. The interest is not in perfect execution but in the performer's negotiation with a task that resists completion. When a performer reports difficulty or failure, this is valuable material — use it. Explore the edges of what is possible or reasonable.",
+    suggestedVoice: "taskmaster"
+  },
+  {
+    id: "sound-listening",
+    title: "Sound and listening",
+    description: "Instructions oriented around producing, attending to, or transforming sound.",
+    context: "This piece is concerned with sound and listening. Instructions should involve making sounds (vocal, physical, found), attending to the sonic environment, modifying or responding to sounds already present, or exploring the acoustic properties of the space. The performer's body is primarily a sound-producing instrument. Silence is also a form of sound.",
+    suggestedVoice: "poetic"
+  },
+  {
+    id: "collective",
+    title: "Collective behaviour",
+    description: "For multiple performers. Instructions consider relationships, proximity, unison, and divergence.",
+    context: "This piece is designed for multiple performers working in the same space. Instructions should consider the relationships between performers — proximity, mirroring, contrast, call and response, unison, divergence, awareness of each other without direct communication. Each performer receives their own instruction but the conductor is aware of all of them. The piece is interested in what emerges from the interaction of independent but related actions.",
+    suggestedVoice: "process"
+  }
+];
+
+// ── State ─────────────────────────────────────────────────────────────────
+const S = {
+  apiKey: '', playerName: '', roomCode: '',
+  context: '', voiceStyle: 'poetic',
+  sessionActive: false, actionCount: 0,
+  history: [],
+  players: {},
+  recognition: null,
+  listening: false, speaking: false, thinking: false,
+  loopEnabled: false,
+  lastInstruction: null,
+  lastInstructionCompleted: false,
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+(function init() {
+  genCode();
+  populatePresets();
+  const saved = localStorage.getItem('widn_api_key');
+  if (saved) {
+    document.getElementById('api-key').value = saved;
+    const el = document.getElementById('key-status');
+    el.textContent = '✓ key remembered'; el.className = 'ok';
+    document.getElementById('forget-key-btn').style.display = 'block';
+  }
+})();
+
+function populatePresets() {
+  const sel = document.getElementById('preset-select');
+  PRESETS.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.title;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Context tabs ──────────────────────────────────────────────────────────
+function switchCtxTab(tab) {
+  document.querySelectorAll('.ctx-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['preset','upload','manual'][i] === tab);
+  });
+  document.querySelectorAll('.ctx-panel').forEach((p, i) => {
+    p.classList.toggle('active', ['ctx-preset','ctx-upload','ctx-manual'][i] === 'ctx-' + tab);
+  });
+}
+
+function loadPreset() {
+  const id = document.getElementById('preset-select').value;
+  const preset = PRESETS.find(p => p.id === id);
+  document.getElementById('preset-desc').textContent = preset ? preset.description : '';
+  if (preset && preset.suggestedVoice) {
+    document.getElementById('voice-style').value = preset.suggestedVoice;
+  }
+}
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      // Store as a temporary custom preset
+      const custom = {
+        id: '__custom__',
+        title: data.title || file.name,
+        description: data.description || '',
+        context: data.context || ev.target.result,
+        suggestedVoice: data.suggestedVoice || null
+      };
+      // Add/replace in list
+      const existing = PRESETS.findIndex(p => p.id === '__custom__');
+      if (existing >= 0) PRESETS[existing] = custom;
+      else PRESETS.push(custom);
+
+      // Switch to preset tab and select it
+      const sel = document.getElementById('preset-select');
+      let opt = sel.querySelector('option[value="__custom__"]');
+      if (!opt) { opt = document.createElement('option'); sel.appendChild(opt); }
+      opt.value = '__custom__';
+      opt.textContent = custom.title + ' (uploaded)';
+      sel.value = '__custom__';
+      document.getElementById('preset-desc').textContent = custom.description;
+      if (custom.suggestedVoice) document.getElementById('voice-style').value = custom.suggestedVoice;
+      document.getElementById('upload-label').textContent = '✓ ' + file.name;
+      document.getElementById('upload-area').classList.add('loaded');
+      switchCtxTab('preset');
+    } catch {
+      // Treat as plain text
+      const custom = { id: '__custom__', title: file.name, description: '', context: ev.target.result, suggestedVoice: null };
+      const existing = PRESETS.findIndex(p => p.id === '__custom__');
+      if (existing >= 0) PRESETS[existing] = custom;
+      else PRESETS.push(custom);
+      const sel = document.getElementById('preset-select');
+      let opt = sel.querySelector('option[value="__custom__"]');
+      if (!opt) { opt = document.createElement('option'); sel.appendChild(opt); }
+      opt.value = '__custom__'; opt.textContent = file.name + ' (uploaded)';
+      sel.value = '__custom__';
+      document.getElementById('upload-label').textContent = '✓ ' + file.name;
+      document.getElementById('upload-area').classList.add('loaded');
+      switchCtxTab('preset');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Resolve active context text ───────────────────────────────────────────
+function getContextText() {
+  const tabs = document.querySelectorAll('.ctx-tab');
+  let activeTab = 'preset';
+  tabs.forEach((t, i) => { if (t.classList.contains('active')) activeTab = ['preset','upload','manual'][i]; });
+
+  if (activeTab === 'manual') {
+    return document.getElementById('manual-context').value.trim();
+  }
+  // preset or upload — both end up in the preset select
+  const id = document.getElementById('preset-select').value;
+  const preset = PRESETS.find(p => p.id === id);
+  return preset ? preset.context : '';
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+function genCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 5; i++) s += c[Math.floor(Math.random() * c.length)];
+  document.getElementById('room-code').value = s;
+}
+
+function show(id) { document.getElementById(id).style.display = 'flex'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+function setStatus(state) {
+  const ring = document.getElementById('listen-ring');
+  const label = document.getElementById('status-label');
+  ring.className = 'listen-ring';
+  if (state === 'listening') { label.textContent = 'listening'; }
+  else if (state === 'thinking') { ring.classList.add('thinking'); label.textContent = 'thinking'; }
+  else if (state === 'speaking') { ring.classList.add('speaking'); label.textContent = 'speaking'; }
+  else { label.textContent = 'ready'; }
+}
+
+function setInstruction(text, isPlaceholder) {
+  const el = document.getElementById('instruction-text');
+  el.textContent = text;
+  el.className = 'instruction-text' + (isPlaceholder ? ' placeholder' : '');
+}
+
+function setHeard(text) { document.getElementById('heard-text').textContent = text; }
+
+function addLog(who, type, msg) {
+  const strip = document.getElementById('log-strip');
+  const row = document.createElement('div');
+  row.className = `log-row ${type}`;
+  row.innerHTML = `<span class="log-who">${who}</span><span class="log-msg">${msg}</span>`;
+  strip.appendChild(row);
+  strip.scrollTop = strip.scrollHeight;
+}
+
+// ── Key test ──────────────────────────────────────────────────────────────
+async function testKey() {
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) return;
+  const el = document.getElementById('key-status');
+  el.textContent = 'testing…'; el.className = '';
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 5, messages: [{ role: 'user', content: 'hi' }] })
+    });
+    if (r.ok) {
+      el.textContent = '✓ valid — key saved on this device'; el.className = 'ok';
+      localStorage.setItem('widn_api_key', key);
+      document.getElementById('forget-key-btn').style.display = 'block';
+    } else {
+      el.textContent = `✗ invalid (${r.status})`; el.className = 'err';
+    }
+  } catch(e) { el.textContent = '✗ network error'; el.className = 'err'; }
+}
+
+function forgetKey() {
+  localStorage.removeItem('widn_api_key');
+  document.getElementById('api-key').value = '';
+  const el = document.getElementById('key-status');
+  el.textContent = 'key removed'; el.className = '';
+  document.getElementById('forget-key-btn').style.display = 'none';
+}
+
+// ── Start session ─────────────────────────────────────────────────────────
+function startSession() {
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) { alert('Enter your Anthropic API key first.'); return; }
+  const name = document.getElementById('player-name').value.trim() || 'performer';
+  let room = document.getElementById('room-code').value.trim();
+  if (!room) { genCode(); room = document.getElementById('room-code').value; }
+
+  S.apiKey = key;
+  S.playerName = name;
+  S.roomCode = room;
+  S.context = getContextText();
+  S.voiceStyle = document.getElementById('voice-style').value;
+  S.sessionActive = true;
+  S.history = [];
+  S.actionCount = 0;
+  S.lastInstruction = null;
+  S.lastInstructionCompleted = false;
+  S.players[`${room}:${name}`] = { name, lastAction: 'just joined', lastSeen: Date.now() };
+
+  document.getElementById('disp-room').textContent = room;
+  document.getElementById('disp-name').textContent = name;
+
+  hide('screen-setup');
+  show('screen-perf');
+  initialGreeting();
+}
+
+// ── System prompt ─────────────────────────────────────────────────────────
+function buildSystemPrompt() {
+  const voices = {
+    poetic:       'Use oblique, evocative, poetic language. Speak in images and sensations. Avoid literal instructions; suggest, evoke, invite. Keep responses under 50 words.',
+    terse:        'Give short, precise, concrete instructions. No more than 15 words. Imperative sentences only.',
+    process:      'Give clear step-by-step instructions. Be specific about body, space, time, material. Keep responses under 60 words.',
+    question:     'Respond primarily with questions that open a space of action. Do not give direct commands. Provoke the performer to find their own response. Keep responses under 40 words.',
+    objective:    'Speak in the tone of an automated telephone menu system: neutral, bureaucratic, disinterested. Use numbered options or procedural phrasing. No warmth. Keep responses under 40 words.',
+    enthusiastic: 'Be relentlessly enthusiastic, complimentary and supportive of absolutely everything the performer does or says, however mundane. Use positive reinforcement at every turn. Keep responses under 50 words.',
+    critical:     'Always find the negative. Undermine the performer\'s confidence, question their choices, suggest they could do better. Never be overtly cruel but consistently find fault. Keep responses under 40 words.',
+    taskmaster:   'Be extremely blunt. You only care about results. No sympathy, no small talk, no encouragement. Just tell them what to do next. Keep responses under 20 words.',
+    quirky:       'Give instructions that seem completely unconnected to anything that has happened or been said. No clear rationale. Non-sequiturs welcome. Keep responses under 30 words.',
+  };
+
+  const players = Object.values(S.players);
+  const pDesc = players.length > 1
+    ? `\n\nPerformers in room: ${players.map(p => `${p.name} (last action: ${p.lastAction})`).join('; ')}.`
+    : '';
+
+  const lastTask = S.lastInstruction
+    ? `\n\nLAST INSTRUCTION GIVEN: "${S.lastInstruction}"\nCOMPLETED: ${S.lastInstructionCompleted ? 'yes' : 'not yet confirmed'}`
+    : '';
+
+  return `You are an AI directing a live performance piece called "what i am doing now". You give instructions to performers in real time and manage a dialogue about their progress.
+
+${S.context ? `PERFORMANCE CONTEXT:\n${S.context}\n\n` : ''}VOICE STYLE: ${voices[S.voiceStyle]}
+
+CORE BEHAVIOUR RULES:
+
+1. NEW INSTRUCTION — when the performer asks "what should I do now?" or any variation (what next, what do I do, give me something, what now, etc.): give exactly ONE new instruction. Store it as the current task.
+
+2. COMPLETION REPORT — when the performer says what they did (e.g. "I did it", "I walked to the window", "I held my breath for ten seconds", "I am doing now is..."): acknowledge it briefly in your voice style, then either give a new instruction or wait for them to ask.
+
+3. NEW INSTRUCTION WITHOUT COMPLETION — if the performer asks for a new instruction but has NOT reported completing the previous one: first check with them. Ask whether they completed it. If they say no, find out why. Then negotiate: suggest trying again, simplifying the task, approaching it differently, or finding an equivalent. Only move on when satisfied.
+
+4. PROGRESS REPORT — if the performer says "what I am doing now is..." followed by an explanation of ongoing work: do not give a new instruction. Instead, respond by advising on how to develop, deepen, or improve what they are doing — or make the task more difficult, or change it in a small way.
+
+5. ARC — track the overall shape of the piece. Move through phases: opening → development → complication → resolution → coda. Each instruction should respond to what came before.
+
+6. Never explain your reasoning or break character. You are the score.${lastTask}${pDesc}`;
+}
+
+// ── Call AI ───────────────────────────────────────────────────────────────
+async function callConductor(userMessage) {
+  // Detect if this is a new instruction request, to track completion state
+  const isAskingForNew = /what (should i|do i|shall i|can i|next|now)|(what next|give me|what do i do|tell me what|what to do|what should)/i.test(userMessage);
+  if (isAskingForNew && S.lastInstruction && !S.lastInstructionCompleted) {
+    // Annotate the message so the AI knows the situation clearly
+    userMessage = `[Performer is asking for a new instruction but has not yet reported completing the previous one: "${S.lastInstruction}"] ${userMessage}`;
+  }
+
+  // Detect completion reports
+  const isCompletionReport = /^(i (did|have|finished|completed|tried|attempted|just)|what i (did|have done|am doing now)|i('ve| have) (done|finished|completed)|done[.,!]|finished[.,!])/i.test(userMessage.trim());
+  if (isCompletionReport) {
+    S.lastInstructionCompleted = true;
+    if (S.players[`${S.roomCode}:${S.playerName}`]) {
+      S.players[`${S.roomCode}:${S.playerName}`].lastAction = userMessage.substring(0, 80);
+    }
+  }
+
+  S.history.push({ role: 'user', content: userMessage });
+  S.thinking = true;
+
+  const itext = document.getElementById('instruction-text');
+  itext.classList.add('dim');
+  setStatus('thinking');
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': S.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 180,
+        system: buildSystemPrompt(),
+        messages: S.history
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || '…';
+
+    S.history.push({ role: 'assistant', content: text });
+    S.actionCount++;
+    S.thinking = false;
+
+    // If this response looks like a new instruction (not a negotiation), store it
+    const looksLikeInstruction = !/(did you|have you|why (not|didn't)|couldn't you|try|attempt|what happened)/i.test(text.substring(0,60));
+    if (looksLikeInstruction && isAskingForNew) {
+      S.lastInstruction = text;
+      S.lastInstructionCompleted = false;
+    }
+
+    itext.classList.remove('dim');
+    setInstruction(text, false);
+    setHeard('');
+    addLog('conductor', 'conductor', text);
+    await speakText(text);
+
+  } catch(e) {
+    S.thinking = false;
+    itext.classList.remove('dim');
+    setInstruction('(error — continue)', false);
+    setStatus('idle');
+    console.error(e);
+  }
+}
+
+// ── TTS ───────────────────────────────────────────────────────────────────
+async function speakText(text) {
+  if (!('speechSynthesis' in window)) { startListeningLoop(); return; }
+  return new Promise(resolve => {
+    window.speechSynthesis.cancel();
+    S.speaking = true;
+    setStatus('speaking');
+
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.80;
+    utt.pitch = 0.88;
+
+    const voices = window.speechSynthesis.getVoices();
+    const pref = voices.find(v =>
+      v.name.includes('Daniel') || v.name.includes('Oliver') ||
+      v.name.includes('Google UK') || (v.lang === 'en-GB' && v.name.includes('Google'))
+    );
+    if (pref) utt.voice = pref;
+
+    const done = () => { S.speaking = false; resolve(); startListeningLoop(); };
+    utt.onend = done;
+    utt.onerror = done;
+    window.speechSynthesis.speak(utt);
+  });
+}
+
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => {};
+}
+
+// ── Initial greeting ──────────────────────────────────────────────────────
+async function initialGreeting() {
+  S.loopEnabled = true;
+  setInstruction('…', true);
+  setStatus('thinking');
+  const msg = S.context
+    ? `Performance begins. Performer: ${S.playerName}. Give your opening instruction.`
+    : `Performance begins. Performer: ${S.playerName}. No context provided. Begin.`;
+  await callConductor(msg);
+}
+
+// ── Continuous listening loop ─────────────────────────────────────────────
+function startListeningLoop() {
+  if (!S.loopEnabled || !S.sessionActive) return;
+  if (S.listening || S.speaking || S.thinking) return;
+
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    setStatus('idle');
+    setHeard('Speech recognition not available in this browser.');
+    return;
+  }
+
+  S.listening = true;
+  setStatus('listening');
+
+  const rec = new SpeechRec();
+  S.recognition = rec;
+  rec.continuous = false;
+  rec.interimResults = true;
+  rec.lang = 'en-GB';
+
+  let interim = '';
+  let finalText = '';
+
+  rec.onresult = (e) => {
+    interim = ''; finalText = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    setHeard(finalText || interim);
+    if (finalText.trim()) rec.stop();
+  };
+
+  rec.onend = () => {
+    S.listening = false;
+    S.recognition = null;
+    const text = (finalText || interim).trim();
+    if (text && S.loopEnabled && !S.speaking && !S.thinking) {
+      addLog(S.playerName, 'player', text);
+      callConductor(text);
+    } else if (S.loopEnabled && !S.speaking && !S.thinking) {
+      setTimeout(startListeningLoop, 800);
+    }
+  };
+
+  rec.onerror = (e) => {
+    S.listening = false;
+    S.recognition = null;
+    if (!S.loopEnabled) return;
+    if (e.error === 'no-speech' || e.error === 'aborted') setTimeout(startListeningLoop, 600);
+    else { setHeard(`mic error: ${e.error}`); setTimeout(startListeningLoop, 2000); }
+  };
+
+  rec.start();
+}
+
+// ── End session ───────────────────────────────────────────────────────────
+function endSession() {
+  if (!confirm('End this session?')) return;
+  S.loopEnabled = false;
+  S.sessionActive = false;
+  window.speechSynthesis?.cancel();
+  if (S.recognition) { try { S.recognition.abort(); } catch(e) {} S.recognition = null; }
+  S.listening = false; S.speaking = false; S.thinking = false;
+  S.history = [];
+  S.lastInstruction = null;
+  S.lastInstructionCompleted = false;
+
+  document.getElementById('log-strip').innerHTML = '';
+  setInstruction('listening', true);
+  setStatus('idle');
+  setHeard('');
+
+  hide('screen-perf');
+  show('screen-setup');
+}
+</script>
+</body>
+</html>
