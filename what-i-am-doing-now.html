@@ -593,6 +593,7 @@ const S = {
   recognition: null,
   listening: false, speaking: false, thinking: false,
   loopEnabled: false,
+  netErrCount: 0,
   lastInstruction: null,
   lastInstructionCompleted: false,
 };
@@ -621,33 +622,45 @@ const S = {
 })();
 
 async function loadContexts() {
-  try {
-    const idxResp = await fetch('contexts/index.json');
-    if (!idxResp.ok) return;
-    const filenames = await idxResp.json();
-    const loaded = await Promise.all(filenames.map(async fname => {
-      try {
-        const r = await fetch(`contexts/${fname}`);
-        if (!r.ok) return null;
-        const data = await r.json();
-        return { id: fname.replace(/\.json$/, ''), ...data };
-      } catch { return null; }
-    }));
-    const valid = loaded.filter(Boolean);
-    if (!valid.length) return;
-    PRESETS.length = 0;
-    valid.forEach(p => PRESETS.push(p));
-    const sel = document.getElementById('preset-select');
-    while (sel.options.length > 1) sel.remove(1);
-    PRESETS.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.title;
-      sel.appendChild(opt);
-    });
-  } catch(e) {
-    // fetch unavailable (file://) — keep embedded PRESETS
+  const GITHUB = 'https://raw.githubusercontent.com/thewatchingeye/whatiamdoingnow/main/contexts';
+
+  async function tryFetch(url) {
+    try { const r = await fetch(url); if (r.ok) return r; } catch {}
+    return null;
   }
+
+  // Try local relative URL first; fall back to GitHub raw (works when file is opened directly)
+  const idxResp = await tryFetch('contexts/index.json') || await tryFetch(`${GITHUB}/index.json`);
+  if (!idxResp) return;
+
+  let filenames;
+  try { filenames = await idxResp.json(); } catch { return; }
+
+  // Derive base URL from where the index was successfully loaded
+  const base = idxResp.url.replace(/\/index\.json(\?.*)?$/, '');
+
+  const loaded = await Promise.all(filenames.map(async fname => {
+    const r = await tryFetch(`${base}/${fname}`);
+    if (!r) return null;
+    try {
+      const data = await r.json();
+      return { id: fname.replace(/\.json$/, ''), ...data };
+    } catch { return null; }
+  }));
+
+  const valid = loaded.filter(Boolean);
+  if (!valid.length) return;
+
+  PRESETS.length = 0;
+  valid.forEach(p => PRESETS.push(p));
+  const sel = document.getElementById('preset-select');
+  while (sel.options.length > 1) sel.remove(1);
+  PRESETS.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.title;
+    sel.appendChild(opt);
+  });
 }
 
 function populatePresets() {
@@ -1054,11 +1067,20 @@ function startListeningLoop() {
     }
   };
 
+  rec.onstart = () => { S.netErrCount = 0; };
+
   rec.onerror = (e) => {
     S.listening = false;
     S.recognition = null;
     if (!S.loopEnabled) return;
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { setHeard('Microphone access denied. Please allow mic and reload.'); S.loopEnabled = false; return; }
+    if (e.error === 'network') {
+      S.netErrCount++;
+      if (S.netErrCount >= 3) { setHeard('Speech recognition unavailable. Check connection and reload.'); S.loopEnabled = false; return; }
+      setHeard('speech service unavailable, retrying…');
+      setTimeout(startListeningLoop, 5000 * S.netErrCount);
+      return;
+    }
     if (e.error === 'no-speech' || e.error === 'aborted') setTimeout(startListeningLoop, 600);
     else { setHeard(`mic error: ${e.error}`); setTimeout(startListeningLoop, 2000); }
   };
